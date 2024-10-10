@@ -14,7 +14,6 @@ const tasksSlice = createSlice({
       }
     },
     setTasks: (state, action) => {
-      console.log('Setting tasks:', action.payload);
       return action.payload;
     }
   },

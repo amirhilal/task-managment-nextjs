@@ -10,7 +10,7 @@ import {
   FaPlus,
 } from 'react-icons/fa';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchColumns, updateColumn } from '../../store/columnsSlice';
+import { fetchColumns, moveTaskBetweenColumns } from '../../store/columnsSlice';
 import { addTask } from '../../store/tasksSlice';
 import {
   initializeSocket,
@@ -51,28 +51,12 @@ export default function Dashboard() {
 
   const handleTaskMoved = useCallback(
     ({ taskId, sourceColumnId, destinationColumnId, newIndex }) => {
-      dispatch(
-        updateColumn({
-          id: sourceColumnId,
-          changes: {
-            taskIds: columns[sourceColumnId].taskIds.filter(
-              id => id !== taskId,
-            ),
-          },
-        }),
-      );
-      dispatch(
-        updateColumn({
-          id: destinationColumnId,
-          changes: {
-            taskIds: [
-              ...columns[destinationColumnId].taskIds.slice(0, newIndex),
-              taskId,
-              ...columns[destinationColumnId].taskIds.slice(newIndex),
-            ],
-          },
-        }),
-      );
+    dispatch(moveTaskBetweenColumns({
+        projectId: '6702efdcb9fafdb07a64380d',
+        taskId: taskId,
+        sourceColumnId: sourceColumnId,
+        destinationColumnId: destinationColumnId,
+        }));
     },
     [columns, dispatch],
   );
@@ -80,12 +64,6 @@ export default function Dashboard() {
   const handleNewTask = useCallback(
     task => {
       dispatch(addTask(task));
-      dispatch(
-        updateColumn({
-          id: task.columnId,
-          changes: { taskIds: [...columns[task.columnId].taskIds, task.id] },
-        }),
-      );
     },
     [columns, dispatch],
   );
@@ -119,7 +97,6 @@ export default function Dashboard() {
     };
     dispatch(addTask({ id: createdTask._id, task: createdTask }));
 
-    dispatch(updateColumn({ id: newTaskColumn, changes: updatedColumns }));
     getSocket().emit('newTask', createdTask);
     handleModalClose();
   };
@@ -146,13 +123,6 @@ export default function Dashboard() {
         const newTaskIds = Array.from(start.taskIds);
         newTaskIds.splice(source.index, 1);
         newTaskIds.splice(destination.index, 0, draggableId);
-
-        dispatch(
-          updateColumn({
-            id: start.id,
-            changes: { taskIds: newTaskIds },
-          }),
-        );
       } else {
         const startTaskIds = Array.from(start.taskIds);
         startTaskIds.splice(source.index, 1);
@@ -168,19 +138,6 @@ export default function Dashboard() {
           taskIds: finishTaskIds,
         };
 
-        dispatch(
-          updateColumn({
-            id: newStart.id,
-            changes: { taskIds: newStart.taskIds },
-          }),
-        );
-        dispatch(
-          updateColumn({
-            id: newFinish.id,
-            changes: { taskIds: newFinish.taskIds },
-          }),
-        );
-
         getSocket().emit('taskMoved', {
           taskId: draggableId,
           sourceColumnId: source.droppableId,
@@ -194,6 +151,13 @@ export default function Dashboard() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ columnId: destination.droppableId }),
         });
+
+        dispatch(moveTaskBetweenColumns({
+            projectId: '6702efdcb9fafdb07a64380d', // Replace with your actual project ID
+            taskId: draggableId,
+            sourceColumnId: source.droppableId,
+            destinationColumnId: destination.droppableId,
+        }));
 
         if (destination.droppableId === 'done') {
           setShowConfetti(true);
@@ -272,7 +236,7 @@ export default function Dashboard() {
               <div className="flex space-x-6">
                 {Object.values(columns).map(column => (
                   <div
-                    key={column.id}
+                    key={column._id}
                     className="bg-white p-4 rounded-lg shadow-md min-h-screen w-80 bg-gradient-to-br from-gray-100 to-gray-200"
                   >
                     <h2
@@ -290,7 +254,6 @@ export default function Dashboard() {
                           className="min-h-[200px]"
                         >
                           {column.taskIds.map((taskId, index) => {
-                            console.log('tasks', tasks);
                             const task = tasks[taskId];
                             if (!task) {
                               console.log(`Task not found for id: ${taskId}`);
@@ -298,8 +261,8 @@ export default function Dashboard() {
                             }
                             return (
                               <Draggable
-                                key={task}
-                                draggableId={task}
+                                key={task._id}
+                                draggableId={task._id}
                                 index={index}
                               >
                                 {(provided, snapshot) => (
@@ -311,9 +274,6 @@ export default function Dashboard() {
                                                                                                           ${snapshot.isDragging ? 'bg-blue-50 shadow-md' : ''}
                                                                                                           hover:bg-gray-100 transition-colors duration-150`}
                                   >
-                                    <p className="text-gray-800 font-medium mb-2">
-                                      {task._id}
-                                    </p>
                                     <p className="text-gray-800 font-medium mb-2">
                                       {task.content}
                                     </p>

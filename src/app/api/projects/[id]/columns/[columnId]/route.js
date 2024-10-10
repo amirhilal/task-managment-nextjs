@@ -20,11 +20,16 @@ export async function PUT(request, { params }) {
   await dbConnect();
   try {
     const { columnId } = params;
-    const { title, color, icon } = await request.json();
-    console.log(title, color, icon);
+    const updateData = await request.json();
+
+    // Filter out null values so we don't update the column with empty or null values
+    const filteredUpdateData = Object.fromEntries(
+      Object.entries(updateData).filter(([_, v]) => v != null),
+    );
+
     const updatedColumn = await Project_Columns.findByIdAndUpdate(
       columnId,
-      { title, color, icon },
+      filteredUpdateData,
       { new: true },
     );
     if (!updatedColumn) {

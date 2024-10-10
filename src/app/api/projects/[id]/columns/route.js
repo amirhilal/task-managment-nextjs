@@ -28,3 +28,15 @@ export async function POST(request, { params }) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
+
+export async function PUT(request, { params }) {
+  await dbConnect();
+  try {
+    const { id } = params;
+    const { changes } = await request.json();
+    const column = await Project_Columns.findByIdAndUpdate(id, changes, { new: true });
+    return NextResponse.json(column);
+  } catch (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}

@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import dbConnect from '@/lib/mongoose';
+import {Task }from '@/models/Project';
 
 export async function PUT(request, { params }) {
+  await dbConnect();
   const { id } = params;
   const { columnId } = await request.json();
-  const updatedTask = await prisma.task.update({
-    where: { id: parseInt(id) },
-    data: { columnId },
-  });
+  const updatedTask = await Task.findByIdAndUpdate(id, { column: columnId }, { new: true });
   return NextResponse.json(updatedTask);
 }
